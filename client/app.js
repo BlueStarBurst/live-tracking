@@ -39,7 +39,7 @@ function App(props) {
 
     useEffect(() => {
         Media().then(
-            setstate(<h1> Hello </h1>)
+            setstate(<Model/>)
         )
     }, [])
 
@@ -51,7 +51,7 @@ function Loading(props) {
 }
 
 function Model(props) {
-    
+    return (<h1> Hello </h1>);
 }
 
 
