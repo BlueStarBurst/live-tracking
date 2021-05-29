@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
         crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -23,12 +25,19 @@
     const canvasElement = document.getElementsByClassName('output_canvas')[0];
     const canvasCtx = canvasElement.getContext('2d');
 
-    function onResults(results) {
+    var position = {};
+
+    async function changeCanvas() {
         canvasCtx.save();
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-        canvasCtx.drawImage(
-            results.image, 0, 0, canvasElement.width, canvasElement.height);
+    }
+
+    function onResultsFace(results) {
+
+        //canvasCtx.drawImage(
+        //    results.image, 0, 0, canvasElement.width, canvasElement.height);
         if (results.multiFaceLandmarks) {
+            console.log(results.multiFaceLandmarks);
             for (const landmarks of results.multiFaceLandmarks) {
                 drawConnectors(canvasCtx, landmarks, FACEMESH_TESSELATION,
                     { color: '#C0C0C070', lineWidth: 1 });
@@ -40,8 +49,46 @@
                 drawConnectors(canvasCtx, landmarks, FACEMESH_LIPS, { color: '#E0E0E0' });
             }
         }
-        canvasCtx.restore();
+
+        //canvasCtx.restore();
     }
+
+    function onResultsPose(results) {
+        canvasCtx.drawImage(
+            results.image, 0, 0, canvasElement.width, canvasElement.height);
+        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS,
+            { color: '#00FF00', lineWidth: 4 });
+        drawLandmarks(canvasCtx, results.poseLandmarks,
+            { color: '#FF0000', lineWidth: 2 });
+        //canvasCtx.restore();
+    }
+
+    function onResultsHands(results) {
+        // canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        // canvasCtx.drawImage(
+        //     results.image, 0, 0, canvasElement.width, canvasElement.height);
+        if (results.multiHandLandmarks) {
+            for (const landmarks of results.multiHandLandmarks) {
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS,
+                    { color: '#00FF00', lineWidth: 5 });
+                drawLandmarks(canvasCtx, landmarks, { color: '#FF0000', lineWidth: 2 });
+            }
+        }
+        //canvasCtx.restore();
+    }
+
+    const pose = new Pose({
+        locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+        }
+    });
+    pose.setOptions({
+        modelComplexity: 2,
+        smoothLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+    });
+    pose.onResults(onResultsPose);
 
     const faceMesh = new FaceMesh({
         locateFile: (file) => {
@@ -53,11 +100,28 @@
         minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5
     });
-    faceMesh.onResults(onResults);
+    faceMesh.onResults(onResultsFace);
+
+    const hands = new Hands({
+        locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }
+    });
+    hands.setOptions({
+        maxNumHands: 2,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.5
+    });
+    hands.onResults(onResultsHands);
 
     const camera = new Camera(videoElement, {
         onFrame: async () => {
+            await changeCanvas();
+            await pose.send({ image: videoElement });
             await faceMesh.send({ image: videoElement });
+            await hands.send({ image: videoElement });
+
+            canvasCtx.restore();
         },
         width: 1280,
         height: 720
