@@ -1,9 +1,46 @@
 import json
 import cv2
 import mediapipe as mp
+import socket
+import sys
+import time
+
+# Create a TCP/IP socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+# Bind the socket to the port
+
+hostname = socket.gethostname()
+local_ip = socket.gethostbyname(hostname)
+
+server_address = (local_ip, 10000)
+#print(server_address)
+sock.bind(server_address)
+
+
+
+print("\n\n\n\n\n\n\n\n\n\n\n\n\nUse this ip to connect to Model Renderer!\n")
+print(local_ip)
+
+ip = False
+
+while ip is False:
+    print('waiting to receive message')
+    data, address = sock.recvfrom(4096)
+    
+    print ('received ' + str(len(data)) + ' bytes from ' + str(address))
+    print(data)
+    
+    if data:
+        sent = sock.sendto(data, address)
+        print('sent ' + str(sent) + ' bytes back to ' + str(address))
+        ip = address
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
+
+print(mp_pose)
+
 mp_hands = mp.solutions.hands
 mp_face_mesh = mp.solutions.face_mesh
 
@@ -26,6 +63,12 @@ hands = mp_hands.Hands(min_detection_confidence=0.7,
 
 face_mesh = mp_face_mesh.FaceMesh(min_detection_confidence=0.5,
                                   min_tracking_confidence=0.5)
+    
+imgs = 0
+lastsec = round(time.time()) % 10
+sec = lastsec
+
+print("")
 
 while cap.isOpened():
     success, image = cap.read()
@@ -99,9 +142,16 @@ while cap.isOpened():
     #cv2.imshow('MediaPipe Model', image)
 
     data = json.dumps({'pose': poseData, 'hands': handData, 'face': faceData})
+    sock.sendto(bytearray(data, 'utf-8'), ip)
+    
+    sec = round(time.time()) % 10
+    imgs+=1
+    if sec != lastsec:
+        lastsec = sec
+        sys.stdout.write("\r" + str(imgs) + " updates/second           ")
+        sys.stdout.flush()
+        imgs = 0
 
-    with open(path_to_file + '/data.txt', 'w') as outfile:
-        json.dump(data, outfile)
     if cv2.waitKey(5) & 0xFF == 27:
         break
 cap.release()
