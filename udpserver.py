@@ -149,7 +149,7 @@ while cap.isOpened():
     imgs+=1
     if sec != lastsec:
         lastsec = sec
-        sys.stdout.write("\r" + str(imgs) + " updates/second           ")
+        sys.stdout.write("\r" + str(imgs) + " updates/second!           ")
         sys.stdout.flush()
         imgs = 0
 
