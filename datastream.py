@@ -24,6 +24,7 @@ print(local_ip)
 
 ip = False
 
+
 while ip is False:
     print('waiting to receive message')
     data, address = sock.recvfrom(4096)
@@ -46,7 +47,7 @@ mp_face_mesh = mp.solutions.face_mesh
 
 drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 
-path_to_file = "unity/renderer/Assets"
+#path_to_file = "unity/renderer/Assets"
 
 # For webcam input:
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
